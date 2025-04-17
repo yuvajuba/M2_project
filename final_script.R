@@ -28,7 +28,7 @@ for(i in Conditions){
   }
   
   PreProcess_res <- Pre_process(RCounts = rawcounts,
-                                Conditions = Experimental,
+                                Exp.Conditions = Experimental,
                                 keep_above = 40,
                                 cpm_count_threshold = 0.5,
                                 apply_filt_samp = ifelse(i == "C8", 4, 3),
