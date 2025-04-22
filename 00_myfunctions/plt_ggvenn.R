@@ -70,23 +70,11 @@ Display_Venn <- function(Markers,
   # 4. Calculate intersections :
   # -------------------------- :
   common_genes <- list()
-  for(i in 2:n){
-    x <- combn(sets, i, simplify = F)
-    for(s in 1:length(x)){
-      if(i == 2){
-        common_genes[[paste(names(x[[s]]), collapse = " ∩ ")]] <- intersect(x[[s]][[1]], x[[s]][[2]])
-      }
-      
-      if(i == 3){
-        common_genes[[paste(names(x[[s]]), collapse = " ∩ ")]] <- purrr::reduce(list(x[[s]][[1]],
-                                                                                     x[[s]][[2]],
-                                                                                     x[[s]][[3]]), 
-                                                                                intersect)
-      }
-      
-      if(i == 4){
-        common_genes[["Common all"]] <- purrr::reduce(x[[s]], intersect)
-      }
+  for (i in 2:n) {
+    combs <- combn(sets, i, simplify = FALSE)
+    for (x in combs) {
+      key <- paste(names(x), collapse = " ∩ ")
+      common_genes[[key]] <- purrr::reduce(x, intersect)
     }
   }
   
@@ -94,61 +82,12 @@ Display_Venn <- function(Markers,
   # 5. Calculate group specific genes :
   # --------------------------------- :
   specific_genes <- list()
-  for(i in 2:n){
-    x <- combn(sets, i, simplify = F)
-    for(s in 1:length(x)){
-      if(i == 2){
-        specific_genes[[paste(names(x[[s]]), collapse = " | ")]] <- setNames(list(setdiff(x[[s]][[1]], 
-                                                                                          intersect(x[[s]][[1]], 
-                                                                                                    x[[s]][[2]])),
-                                                                                  setdiff(x[[s]][[2]], 
-                                                                                          intersect(x[[s]][[1]], 
-                                                                                                    x[[s]][[2]]))),
-                                                                             c(names(x[[s]][1]), 
-                                                                               names(x[[s]][2])))
-      }
-      
-      if(i == 3){
-        specific_genes[[paste(names(x[[s]]), collapse = " | ")]] <- setNames(list(setdiff(x[[s]][[1]], 
-                                                                                          union(x[[s]][[2]], 
-                                                                                                x[[s]][[3]])),
-                                                                                  setdiff(x[[s]][[2]], 
-                                                                                          union(x[[s]][[1]], 
-                                                                                                x[[s]][[3]])),
-                                                                                  setdiff(x[[s]][[3]], 
-                                                                                          union(x[[s]][[2]], 
-                                                                                                x[[s]][[1]]))),
-                                                                             c(names(x[[s]][1]), 
-                                                                               names(x[[s]][2]), 
-                                                                               names(x[[s]][3])))
-      }
-      
-      if(i == 4){
-        specific_genes[["unique each"]] <- setNames(list(setdiff(x[[s]][[1]],
-                                                                 purrr::reduce(list(x[[s]][[2]], 
-                                                                                    x[[s]][[3]], 
-                                                                                    x[[s]][[4]]), 
-                                                                               union)),
-                                                         setdiff(x[[s]][[2]],
-                                                                 purrr::reduce(list(x[[s]][[1]], 
-                                                                                    x[[s]][[3]], 
-                                                                                    x[[s]][[4]]), 
-                                                                               union)),
-                                                         setdiff(x[[s]][[3]],
-                                                                 purrr::reduce(list(x[[s]][[2]], 
-                                                                                    x[[s]][[1]], 
-                                                                                    x[[s]][[4]]), 
-                                                                               union)),
-                                                         setdiff(x[[s]][[4]],
-                                                                 purrr::reduce(list(x[[s]][[2]], 
-                                                                                    x[[s]][[3]], 
-                                                                                    x[[s]][[1]]), 
-                                                                               union))),
-                                                    c(names(x[[s]][1]),
-                                                      names(x[[s]][2]),
-                                                      names(x[[s]][3]),
-                                                      names(x[[s]][4])))
-      }
+  for (i in 2:n) {
+    combs <- combn(sets, i, simplify = FALSE)
+    for (x in combs) {
+      key <- paste(names(x), collapse = " | ")
+      specific <- purrr::map2(x, names(x), ~ setdiff(.x, purrr::reduce(x[names(x) != .y], union)))
+      specific_genes[[key]] <- specific
     }
   }
   
