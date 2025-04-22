@@ -136,7 +136,7 @@ for(i in Conditions){
 
 ## --- Remove unnecessary variables :
 rm(AllResults, dds, DESeqObj, dge, GOobj, Experimental, metadata, PreProcess_res, 
-   raw_filt, rawcounts, res, res_filt, i, List_packages, function_files, cond, 
+   raw_filt, rawcounts, res, res_filt, i, List_packages, function_files, Conditions, 
    load_or_install, Pre_process)
 
 ## --- Get the data to use
@@ -238,6 +238,8 @@ Net_plot2(object = netdata,
 
 
 
+
+
 # Selecting genes ----
 
 ## 1. Pre-selection : 
@@ -277,8 +279,12 @@ selected_genes <- tmp$Gene_name[which(abs(tmp$log2FoldChange) > 1.5)]
 
 
 
-## Heatmap
-########## #
+# Visualization ----
+# ---------------- -
+
+
+## Hm terms/genes ----
+#################### #
 Hm_term.genes(obj = hm.data, 
               sel_genes = selected_genes,
               fc = T,
@@ -287,8 +293,8 @@ Hm_term.genes(obj = hm.data,
               FC_col = "log2FoldChange")
 
 
-## Volcano 
-########## #
+## Volcano expression ----
+######################## #
 My_volcano(df = res.c8, 
            x= "log2FoldChange", 
            y= "padj", 
@@ -311,71 +317,96 @@ My_volcano(df = res.c8,
 
 
 
-# ## Hm : Exp-Gene ###
-# ## --------------- -
-# 
-# c8.counts <- res.c8[,c(1,10:17)] %>% column_to_rownames(var = "ENSEMBL") 
-# list_genes <- selected_genes %>% 
-#   setNames(res.c8$ENSEMBL[which(res.c8$Gene_name %in% selected_genes)])
-# 
-# 
-# n_fact <- estimateSizeFactorsForMatrix(c8.counts)
-# n_count <- sweep(c8.counts, 2, n_fact, FUN="/")
-# n_count <- log10(n_count+1)
-# n_count <- n_count[names(list_genes),]
-# n_count <- t(apply(n_count,1,scale))
-# colnames(n_count) <- colnames(c8.counts)
-# 
-# log_counts <- sweep(c8.counts, 2, n_fact, FUN="/")
-# log_counts <- log10(log_counts+1)
-# log_counts <- log_counts[names(list_genes),]
-# 
-# Cond <- as.factor(str_split_i(colnames(n_count),"_",1))
-# ColConditions <- setNames(c("purple","khaki4"), levels(Cond))
-# 
-# HAnnot <- HeatmapAnnotation(Condition = Cond,
-#                             col = list(Condition = ColConditions),
-#                             annotation_name_side = "left",
-#                             show_annotation_name = F,
-#                             show_legend = F,
-#                             annotation_name_gp = list(fontsize = 10,
-#                                                       col = "navy",
-#                                                       fontface = "bold"))
-# 
-# HAnnot2 <- HeatmapAnnotation(LogCounts = anno_boxplot(log_counts, 
-#                                                       axis = TRUE, 
-#                                                       gp = gpar(fill = "orange", col = "black"),
-#                                                       height = unit(2, "cm")),
-#                              annotation_name_side = "left",
-#                              annotation_name_gp = gpar(fontsize = 9,
-#                                                        col = "darkred",
-#                                                        fontface = "bold"),
-#                              annotation_name_rot = 90)
-# 
-# 
-# 
-# h1 <- Heatmap(n_count,
-#               cluster_rows = T, 
-#               bottom_annotation = HAnnot,
-#               top_annotation = HAnnot2,
-#               column_title = "Heatmap", 
-#               column_title_gp = gpar(fontsize = 16, 
-#                                      col = "darkred",
-#                                      fontface = "bold"),
-#               show_row_dend = F,
-#               show_column_dend = F,
-#               column_names_gp = gpar(col = "darkred", 
-#                                      fontface = "bold",
-#                                      fontsize = 11),
-#               column_names_rot = 60,
-#               column_labels = colnames(n_count),
-#               row_labels = res.c8$Gene_name[which(res.c8$ENSEMBL %in% names(list_genes))],
-#               name = "Z-score",
-#               cluster_columns = F,
-#               col = colorRamp2(c(-2,0,2), 
-#                                c("darkgreen","white","darkred")))
-# 
-# h1
+## Hm genes expression ----
+## ---------------------- -
+
+## 1- table of counts and genes selection
+c8.count <- res.c8[,c(1,9:16)] %>% column_to_rownames(var = "ID")
+selected_genes <- selected_genes %>% 
+  setNames(res.c8$ID[which(res.c8$Gene_name %in% selected_genes)])
+
+norm_counts <- nlog_scale_data(c8.count, selected_genes)
+
+## 2- log-normalized and scaled table of counts
+n_count <- norm_counts$scaled
+
+## 3- log-normalized counts for hm annotations (unscaled)
+log_counts <- norm_counts$unscaled
+
+## 4- Set up annotations parameters
+Cond <- as.factor(str_split_i(colnames(n_count),"_",1))
+ColConditions <- setNames(c("purple","khaki4"), levels(Cond))
+
+HAnnot <- HeatmapAnnotation(Condition = Cond,
+                            col = list(Condition = ColConditions),
+                            annotation_name_side = "left",
+                            show_annotation_name = F,
+                            show_legend = T,
+                            annotation_name_gp = list(fontsize = 10,
+                                                      col = "navy",
+                                                      fontface = "bold"),
+                            annotation_legend_param = list(grid_height = unit(0.7,"cm"),
+                                                           grid_width = unit(0.6,"cm"),
+                                                           labels_gp = gpar(col = "black",
+                                                                            fontsize = 11,
+                                                                            fontface = "bold"),
+                                                           title_gp = gpar(col = "darkred",
+                                                                           fontsize = 13,
+                                                                           fontface = "bold")))
+
+HAnnot2 <- HeatmapAnnotation(LogCounts = anno_boxplot(log_counts,
+                                                      axis = TRUE,
+                                                      gp = gpar(fill = "orange", col = "black"),
+                                                      height = unit(2, "cm")),
+                             annotation_name_side = "left",
+                             annotation_name_gp = gpar(fontsize = 9,
+                                                       col = "darkred",
+                                                       fontface = "bold"),
+                             annotation_name_rot = 90)
+
+
+Heatmap(n_count,
+        cluster_rows = T,
+        bottom_annotation = HAnnot,
+        top_annotation = HAnnot2,
+        column_title = "Heatmap",
+        column_title_gp = gpar(fontsize = 16,
+                               col = "darkred",
+                               fontface = "bold"),
+        show_row_dend = T,
+        show_column_dend = F,
+        column_names_gp = gpar(col = "darkred",
+                               fontface = "bold",
+                               fontsize = 11),
+        column_names_rot = 45,
+        column_labels = colnames(n_count),
+        row_labels = res.c8$Gene_name[which(res.c8$ID %in% names(selected_genes))],
+        name = "Z-score",
+        cluster_columns = F,
+        col = colorRamp2(c(-2,0,2),
+                         c("darkgreen","white","darkred")), 
+        row_dend_side = "left",
+        heatmap_legend_param = list(legend_height = unit(3,"cm"),
+                                    direction = "horizontal",
+                                    legend_width = unit(6,"cm"),
+                                    title = "Z-score",
+                                    title_position = "topcenter",
+                                    title_gp = gpar(fontsize=13, 
+                                                    col="black", 
+                                                    fontface="bold"),
+                                    label_gp = gpar(fontsize=10, col="black"),
+                                    legend_gp = gpar(fontsize=10))) %>% 
+  ComplexHeatmap::draw(heatmap_legend_side = "bottom")
+
+
+
+
+
+
+
+
+
+
 
 
 
